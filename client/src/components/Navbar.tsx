@@ -23,6 +23,9 @@ export default function Navbar(): JSX.Element {
           <Button component={RouterLink} to="/dashboard" variant="text">
             Dashboard
           </Button>
+          <Button component={RouterLink} to="/profile" variant="text">
+            Meu Perfil
+          </Button>
           <Box sx={{ mx: 1 }}>
             <strong>{auth.user?.name || auth.user?.email || 'Usuário'}</strong>
           </Box>
