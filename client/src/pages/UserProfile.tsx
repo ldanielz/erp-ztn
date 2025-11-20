@@ -14,7 +14,7 @@ import {
   Avatar,
   Divider
 } from '@mui/material'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import axios from '../api/axios'
@@ -49,6 +49,7 @@ export default function UserProfile(): JSX.Element {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
     reset
   } = useForm<FormData>({
@@ -58,6 +59,10 @@ export default function UserProfile(): JSX.Element {
       email: user?.email || ''
     }
   })
+
+  // Watch password fields to manage disable state
+  const currentPassword = watch('currentPassword')
+  const newPassword = watch('newPassword')
 
   const onSubmit = async (data: FormData) => {
     setErrorMessage(null)
@@ -231,7 +236,7 @@ export default function UserProfile(): JSX.Element {
                   error={!!errors.newPassword}
                   helperText={errors.newPassword?.message}
                   fullWidth
-                  disabled={!register('currentPassword').value}
+                  disabled={!currentPassword}
                 />
 
                 <TextField
@@ -241,7 +246,7 @@ export default function UserProfile(): JSX.Element {
                   error={!!errors.confirmPassword}
                   helperText={errors.confirmPassword?.message}
                   fullWidth
-                  disabled={!register('newPassword').value}
+                  disabled={!newPassword}
                 />
 
                 <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
