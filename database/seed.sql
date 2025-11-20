@@ -1,0 +1,2 @@
+-- Seed: create an initial user (password: password123)
+-- To generate hash using bcrypt, you can use a node script. For convenience, this user assumes you will register via API.
