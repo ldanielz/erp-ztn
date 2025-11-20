@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import UserProfile from './pages/UserProfile'
+import AdminDashboard from './pages/AdminDashboard'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Navbar from './components/Navbar'
@@ -35,6 +36,7 @@ export default function App(): JSX.Element {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
+        <Route path="admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
         <Route path="dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       </Route>
     </Routes>
