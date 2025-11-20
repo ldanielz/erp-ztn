@@ -85,13 +85,14 @@ export default function UserProfile(): JSX.Element {
 
       if (resp.data) {
         setSuccessMessage('Perfil atualizado com sucesso!')
-        // Refresh user from server to sync UI
+        // Refresh user from server to sync AuthProvider state
         await refreshUserFromServer?.()
         setIsEditing(false)
-        // Reset form with fresh data from server
+        // Use server response (authoritative) to reset the form values
+        const updated = resp.data
         reset({
-          name: user?.name || '',
-          email: user?.email || '',
+          name: updated.name || '',
+          email: updated.email || '',
           currentPassword: '',
           newPassword: '',
           confirmPassword: ''
