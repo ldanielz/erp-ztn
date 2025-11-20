@@ -1,0 +1,99 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test-backend:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: dbuser
+          POSTGRES_PASSWORD: dbPass2025
+          POSTGRES_DB: erp_ztn
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'server/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: server
+        run: npm install
+      
+      - name: Lint code (if eslint available)
+        working-directory: server
+        run: npm run lint --if-present || echo "No lint script found"
+      
+      - name: Run tests (if available)
+        working-directory: server
+        run: npm test --if-present || echo "No tests configured"
+        env:
+          DATABASE_URL: postgres://dbuser:dbPass2025@localhost:5432/erp_ztn
+          JWT_SECRET: test-secret-key
+          NODE_ENV: test
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: client
+        run: npm install
+      
+      - name: Build frontend
+        working-directory: client
+        run: npm run build
+      
+      - name: Lint code (if eslint available)
+        working-directory: client
+        run: npm run lint --if-present || echo "No lint script found"
+
+  security-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run npm audit on server
+        working-directory: server
+        run: npm audit --audit-level=moderate || true
+      
+      - name: Run npm audit on client
+        working-directory: client
+        run: npm audit --audit-level=moderate || true

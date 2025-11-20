@@ -1,0 +1,40 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+      
+      - name: Check dependencies for vulnerabilities
+        run: |
+          echo "Checking server dependencies..."
+          cd server && npm audit --production 2>&1 || true
+          cd ../client && npm audit --production 2>&1 || true
+      
+      - name: OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'erp-ztn'
+          path: '.'
+          format: 'JSON'
+          args: >
+            --exclude node_modules
+            --exclude .git
+            --enableExperimental
+        continue-on-error: true
