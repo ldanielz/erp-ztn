@@ -22,8 +22,18 @@ async function initDb() {
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         name VARCHAR(255),
+        role VARCHAR(32) DEFAULT 'user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `)
+    // ensure role column exists (for older databases)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='role') THEN
+          ALTER TABLE users ADD COLUMN role VARCHAR(32) DEFAULT 'user';
+        END IF;
+      END$$;
     `)
     client.release()
     console.log('Database initialized')

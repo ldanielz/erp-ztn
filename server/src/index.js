@@ -20,7 +20,8 @@ app.use(
 app.use(
 	cors({
 		origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+		methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+		allowedHeaders: ['Content-Type', 'Authorization'],
 		credentials: true
 	})
 )
@@ -37,6 +38,10 @@ initDb()
 // Routes
 const authRoutes = require('./routes/authRoutes')
 app.use('/api/auth', authRoutes)
+
+// admin routes
+const adminRoutes = require('./routes/adminRoutes')
+app.use('/api/admin', adminRoutes)
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 

@@ -13,7 +13,7 @@ async function register(req, res) {
     const hash = await bcrypt.hash(password, 10)
     const user = await createUser({ email, password_hash: hash, name })
     // return token on register and set httpOnly cookie for convenience
-    const token = jwt.sign({ sub: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' })
+    const token = jwt.sign({ sub: user.id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' })
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -35,7 +35,7 @@ async function login(req, res) {
     if (!user) return res.status(401).json({ message: 'Invalid credentials' })
     const ok = await bcrypt.compare(password, user.password_hash)
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' })
-    const token = jwt.sign({ sub: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' })
+    const token = jwt.sign({ sub: user.id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' })
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -58,8 +58,18 @@ async function me(req, res) {
     if (!token && authHeader && authHeader.startsWith('Bearer ')) token = authHeader.split(' ')[1]
     if (!token) return res.status(401).json({ message: 'Not authenticated' })
     const payload = jwt.verify(token, JWT_SECRET)
+    // fetch latest user to include role if token missing it
+    let role = payload.role
+    try {
+      if (!role) {
+        const dbUser = await findUserById(payload.sub)
+        role = dbUser?.role
+      }
+    } catch (e) {
+      // ignore DB lookup errors
+    }
     // return limited user info
-    return res.json({ id: payload.sub, email: payload.email, name: payload.name })
+    return res.json({ id: payload.sub, email: payload.email, name: payload.name, role })
   } catch (err) {
     return res.status(401).json({ message: 'Invalid token' })
   }
@@ -120,7 +130,7 @@ async function updateProfile(req, res) {
     if (!updatedUser) return res.status(500).json({ message: 'Failed to update profile' })
 
     // Generate new token with updated info
-    const newToken = jwt.sign({ sub: updatedUser.id, email: updatedUser.email, name: updatedUser.name }, JWT_SECRET, { expiresIn: '7d' })
+    const newToken = jwt.sign({ sub: updatedUser.id, email: updatedUser.email, name: updatedUser.name, role: updatedUser.role }, JWT_SECRET, { expiresIn: '7d' })
     res.cookie('token', newToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -132,6 +142,7 @@ async function updateProfile(req, res) {
       id: updatedUser.id,
       email: updatedUser.email,
       name: updatedUser.name,
+      role: updatedUser.role,
       message: 'Profile updated successfully'
     })
   } catch (err) {
