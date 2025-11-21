@@ -12,7 +12,13 @@ import {
   Avatar,
   CircularProgress,
   Alert,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Stack
 } from '@mui/material'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import PersonIcon from '@mui/icons-material/Person'
@@ -84,6 +90,11 @@ export default function AdminDashboard(): JSX.Element {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [chartData, setChartData] = useState<any[]>([])
+  const [openModal, setOpenModal] = useState(false)
+  const [modalLoading, setModalLoading] = useState(false)
+  const [modalError, setModalError] = useState<string | null>(null)
+  const [modalSuccess, setModalSuccess] = useState(false)
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' })
 
   useEffect(() => {
     let mounted = true
@@ -125,6 +136,80 @@ export default function AdminDashboard(): JSX.Element {
 
   const chartColors = getChartColors()
 
+  const handleOpenModal = () => {
+    setOpenModal(true)
+    setModalError(null)
+    setModalSuccess(false)
+  }
+
+  const handleCloseModal = () => {
+    setOpenModal(false)
+    setFormData({ name: '', email: '', password: '' })
+    setModalError(null)
+    setModalSuccess(false)
+  }
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleCreateUser = async () => {
+    setModalError(null)
+    setModalSuccess(false)
+
+    // Validate form
+    if (!formData.name || !formData.email || !formData.password) {
+      setModalError('Nome, email e senha são obrigatórios')
+      return
+    }
+
+    try {
+      setModalLoading(true)
+      const resp = await axios.post('/api/admin/users', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
+      })
+
+      setModalSuccess(true)
+      setFormData({ name: '', email: '', password: '' })
+
+      // Refresh stats after successful user creation
+      setTimeout(() => {
+        const refreshStats = async () => {
+          try {
+            const statsResp = await axios.get('/api/admin/stats')
+            const s = statsResp.data
+            setStats([
+              { title: 'Usuários', value: s.usersCount, icon: <PersonIcon /> },
+              { title: 'Atividades (hoje)', value: s.recentActivities?.length || 0, icon: <AssessmentIcon /> },
+              {
+                title: 'Admins',
+                value: s.recentUsers?.filter((u: any) => u.role === 'admin').length || 0,
+                icon: <AdminPanelSettingsIcon />
+              }
+            ])
+            setRecent((s.recentUsers || []).map((u: any) => ({ id: u.id, email: u.email, name: u.name })))
+          } catch (e) {
+            // silently fail on refresh
+          }
+        }
+        refreshStats()
+      }, 500)
+
+      // Close modal after showing success
+      setTimeout(() => {
+        handleCloseModal()
+      }, 1500)
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || 'Erro ao criar usuário'
+      setModalError(errorMsg)
+    } finally {
+      setModalLoading(false)
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -152,6 +237,7 @@ export default function AdminDashboard(): JSX.Element {
         <Box>
           <Button
             variant="contained"
+            onClick={handleOpenModal}
             sx={{
               bgcolor: materialYouPalette.primary.primary,
               '&:hover': { bgcolor: materialYouPalette.primary.onPrimaryContainer }
@@ -265,6 +351,79 @@ export default function AdminDashboard(): JSX.Element {
         </Grid>
       </Grid>
       )}
+
+      {/* Create User Modal */}
+      <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: materialYouPalette.primary.primary }}>
+          Criar Novo Usuário
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {modalSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Usuário criado com sucesso!
+            </Alert>
+          )}
+          {modalError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {modalError}
+            </Alert>
+          )}
+          <Stack spacing={2}>
+            <TextField
+              label="Nome"
+              name="name"
+              value={formData.name}
+              onChange={handleFormChange}
+              fullWidth
+              disabled={modalLoading || modalSuccess}
+              variant="outlined"
+              placeholder="Ex: João Silva"
+            />
+            <TextField
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleFormChange}
+              fullWidth
+              disabled={modalLoading || modalSuccess}
+              variant="outlined"
+              placeholder="Ex: joao@example.com"
+            />
+            <TextField
+              label="Senha"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleFormChange}
+              fullWidth
+              disabled={modalLoading || modalSuccess}
+              variant="outlined"
+              placeholder="Senha segura"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={handleCloseModal}
+            disabled={modalLoading}
+            sx={{ color: materialYouPalette.neutral.onSurface }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleCreateUser}
+            variant="contained"
+            disabled={modalLoading || modalSuccess}
+            sx={{
+              bgcolor: materialYouPalette.primary.primary,
+              '&:hover': { bgcolor: materialYouPalette.primary.onPrimaryContainer }
+            }}
+          >
+            {modalLoading ? <CircularProgress size={24} /> : 'Criar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
