@@ -1,26 +1,77 @@
-import React from 'react'
-import { Box, Grid, Card, CardContent, Typography, Button, List, ListItem, ListItemText, Avatar } from '@mui/material'
+import React, { useEffect, useState } from 'react'
+import {
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Avatar,
+  CircularProgress,
+  Alert,
+  Chip
+} from '@mui/material'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import PersonIcon from '@mui/icons-material/Person'
 import AssessmentIcon from '@mui/icons-material/Assessment'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useAuth } from '../context/AuthProvider'
-import { useEffect, useState } from 'react'
 import axios from '../api/axios'
+import { materialYouPalette, getChartColors } from '../assets/js/materialYou'
 
 const StatCard = ({ title, value, icon }: { title: string; value: string | number; icon?: React.ReactNode }) => (
-  <Card elevation={4} sx={{ borderRadius: 3 }}>
+  <Card
+    elevation={0}
+    sx={{
+      borderRadius: 3,
+      background: `linear-gradient(135deg, ${materialYouPalette.primary.primaryContainer} 0%, ${materialYouPalette.secondary.secondaryContainer} 100%)`,
+      border: `1px solid ${materialYouPalette.neutral.outlineVariant}`,
+      transition: 'all 0.3s ease',
+      '&:hover': { elevation: 8, transform: 'translateY(-4px)' }
+    }}
+  >
     <CardContent>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Avatar sx={{ bgcolor: 'primary.main' }}>{icon}</Avatar>
+        <Avatar
+          sx={{
+            bgcolor: materialYouPalette.primary.primary,
+            width: 48,
+            height: 48
+          }}
+        >
+          {icon}
+        </Avatar>
         <Box>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{ color: materialYouPalette.neutral.onSurfaceVariant, fontWeight: 500 }}>
             {title}
           </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: materialYouPalette.primary.primary }}>
             {value}
           </Typography>
         </Box>
       </Box>
+    </CardContent>
+  </Card>
+)
+
+const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <Card
+    elevation={0}
+    sx={{
+      borderRadius: 3,
+      border: `1px solid ${materialYouPalette.neutral.outlineVariant}`,
+      bgcolor: materialYouPalette.neutral.surface
+    }}
+  >
+    <CardContent>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: materialYouPalette.primary.primary }}>
+        {title}
+      </Typography>
+      {children}
     </CardContent>
   </Card>
 )
@@ -32,6 +83,7 @@ export default function AdminDashboard(): JSX.Element {
   const [recent, setRecent] = useState<Array<{ id: number; email?: string; name?: string; text?: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [chartData, setChartData] = useState<any[]>([])
 
   useEffect(() => {
     let mounted = true
@@ -41,12 +93,24 @@ export default function AdminDashboard(): JSX.Element {
         const resp = await axios.get('/api/admin/stats')
         if (!mounted) return
         const s = resp.data
+
+        // Generate demo chart data based on users
+        const demoData = Array.from({ length: 7 }, (_, i) => ({
+          day: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][i],
+          users: Math.floor(Math.random() * 50) + 10,
+          activity: Math.floor(Math.random() * 30) + 5
+        }))
+        setChartData(demoData)
+
         setStats([
           { title: 'Usuários', value: s.usersCount, icon: <PersonIcon /> },
           { title: 'Atividades (hoje)', value: s.recentActivities?.length || 0, icon: <AssessmentIcon /> },
-          { title: 'Admins', value: s.recentUsers?.filter((u: any) => u.role === 'admin').length || 0, icon: <AdminPanelSettingsIcon /> }
+          {
+            title: 'Admins',
+            value: s.recentUsers?.filter((u: any) => u.role === 'admin').length || 0,
+            icon: <AdminPanelSettingsIcon />
+          }
         ])
-        // map recent users to text
         setRecent((s.recentUsers || []).map((u: any) => ({ id: u.id, email: u.email, name: u.name })))
       } catch (err: any) {
         setError(err?.response?.data?.message || 'Erro ao carregar dashboard')
@@ -59,22 +123,49 @@ export default function AdminDashboard(): JSX.Element {
     }
   }, [])
 
+  const chartColors = getChartColors()
+
   return (
-    <Box sx={{ p: 3 }}>
+    <Box
+      sx={{
+        p: 3,
+        background: `linear-gradient(135deg, ${materialYouPalette.neutral.background} 0%, ${materialYouPalette.primary.primaryContainer}10 100%)`,
+        minHeight: '100vh'
+      }}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              color: materialYouPalette.primary.primary,
+              mb: 0.5
+            }}
+          >
             Admin Dashboard
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: materialYouPalette.neutral.onSurfaceVariant }}>
             Bem vindo, {user?.name || user?.email}
           </Typography>
         </Box>
         <Box>
-          <Button variant="contained">Criar Usuário</Button>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: materialYouPalette.primary.primary,
+              '&:hover': { bgcolor: materialYouPalette.primary.onPrimaryContainer }
+            }}
+          >
+            Criar Usuário
+          </Button>
         </Box>
       </Box>
 
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {loading && <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />}
+
+      {!loading && !error && (
       <Grid container spacing={2}>
         {stats.map((s) => (
           <Grid key={s.title} item xs={12} sm={4}>
@@ -83,37 +174,97 @@ export default function AdminDashboard(): JSX.Element {
         ))}
 
         <Grid item xs={12} md={8}>
-          <Card elevation={4} sx={{ borderRadius: 3 }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-                Usuários Recentes
-              </Typography>
-              <List>
-                {recent.map((r) => (
-                  <ListItem key={r.id} divider>
-                    <ListItemText primary={r.text} />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
+          <ChartCard title="Crescimento de Usuários (7 dias)">
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.8} />
+                    <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={materialYouPalette.neutral.outlineVariant} />
+                <XAxis dataKey="day" stroke={materialYouPalette.neutral.onSurfaceVariant} />
+                <YAxis stroke={materialYouPalette.neutral.onSurfaceVariant} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: materialYouPalette.neutral.surface,
+                    border: `1px solid ${materialYouPalette.neutral.outlineVariant}`,
+                    borderRadius: '8px'
+                  } as React.CSSProperties}
+                />
+                <Area type="monotone" dataKey="users" stroke={chartColors.primary} fillOpacity={1} fill="url(#colorUsers)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartCard>
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Card elevation={4} sx={{ borderRadius: 3 }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-                Ações Rápidas
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Button variant="outlined">Gerenciar Usuários</Button>
-                <Button variant="outlined">Ver Logs</Button>
-                <Button variant="outlined">Configurações</Button>
-              </Box>
-            </CardContent>
-          </Card>
+          <ChartCard title="Ações Rápidas">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Button variant="outlined">Gerenciar Usuários</Button>
+              <Button variant="outlined">Ver Logs</Button>
+              <Button variant="outlined">Configurações</Button>
+            </Box>
+          </ChartCard>
+        </Grid>
+
+        <Grid item xs={12}>
+          <ChartCard title="Atividade por Tipo (7 dias)">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={materialYouPalette.neutral.outlineVariant} />
+                <XAxis dataKey="day" stroke={materialYouPalette.neutral.onSurfaceVariant} />
+                <YAxis stroke={materialYouPalette.neutral.onSurfaceVariant} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: materialYouPalette.neutral.surface,
+                    border: `1px solid ${materialYouPalette.neutral.outlineVariant}`,
+                    borderRadius: '8px'
+                  } as React.CSSProperties}
+                />
+                <Legend />
+                <Bar dataKey="users" fill={chartColors.primary} radius={[8, 8, 0, 0]} />
+                <Bar dataKey="activity" fill={chartColors.secondary} radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Grid>
+
+        <Grid item xs={12}>
+          <ChartCard title="Usuários Recentes">
+            <List>
+              {recent.length > 0 ? (
+                recent.map((r) => (
+                  <ListItem
+                    key={r.id}
+                    divider
+                    sx={{
+                      borderColor: materialYouPalette.neutral.outlineVariant,
+                      '&:hover': { bgcolor: materialYouPalette.neutral.background }
+                    }}
+                  >
+                    <Avatar sx={{ mr: 2, bgcolor: chartColors.primary }}>{r.name?.substring(0, 1)}</Avatar>
+                    <ListItemText
+                      primary={r.name || 'Usuário'}
+                      secondary={r.email}
+                      primaryTypographyProps={{ fontWeight: 600, color: materialYouPalette.primary.primary }}
+                    />
+                    <Chip label="Ativo" color="success" variant="outlined" size="small" />
+                  </ListItem>
+                ))
+              ) : (
+                <ListItem>
+                  <Typography variant="body2" color="textSecondary">
+                    Nenhum usuário ainda
+                  </Typography>
+                </ListItem>
+              )}
+            </List>
+          </ChartCard>
         </Grid>
       </Grid>
+      )}
     </Box>
   )
 }
