@@ -4,6 +4,8 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import PersonIcon from '@mui/icons-material/Person'
 import AssessmentIcon from '@mui/icons-material/Assessment'
 import { useAuth } from '../context/AuthProvider'
+import { useEffect, useState } from 'react'
+import axios from '../api/axios'
 
 const StatCard = ({ title, value, icon }: { title: string; value: string | number; icon?: React.ReactNode }) => (
   <Card elevation={4} sx={{ borderRadius: 3 }}>
@@ -26,18 +28,36 @@ const StatCard = ({ title, value, icon }: { title: string; value: string | numbe
 export default function AdminDashboard(): JSX.Element {
   const { user } = useAuth()
 
-  // demo data - replace with real API calls when available
-  const stats = [
-    { title: 'Usuários', value: 128, icon: <PersonIcon /> },
-    { title: 'Atividades (hoje)', value: 54, icon: <AssessmentIcon /> },
-    { title: 'Admins', value: 3, icon: <AdminPanelSettingsIcon /> }
-  ]
+  const [stats, setStats] = useState<{ title: string; value: number; icon?: React.ReactNode }[]>([])
+  const [recent, setRecent] = useState<Array<{ id: number; email?: string; name?: string; text?: string }>>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const recent = [
-    { id: 1, text: 'Usuário maria@example.com entrou no sistema' },
-    { id: 2, text: 'Usuário joao@example.com atualizou o perfil' },
-    { id: 3, text: 'Nova conta criada: pedro@example.com' }
-  ]
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        setLoading(true)
+        const resp = await axios.get('/api/admin/stats')
+        if (!mounted) return
+        const s = resp.data
+        setStats([
+          { title: 'Usuários', value: s.usersCount, icon: <PersonIcon /> },
+          { title: 'Atividades (hoje)', value: s.recentActivities?.length || 0, icon: <AssessmentIcon /> },
+          { title: 'Admins', value: s.recentUsers?.filter((u: any) => u.role === 'admin').length || 0, icon: <AdminPanelSettingsIcon /> }
+        ])
+        // map recent users to text
+        setRecent((s.recentUsers || []).map((u: any) => ({ id: u.id, email: u.email, name: u.name })))
+      } catch (err: any) {
+        setError(err?.response?.data?.message || 'Erro ao carregar dashboard')
+      } finally {
+        setLoading(false)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   return (
     <Box sx={{ p: 3 }}>

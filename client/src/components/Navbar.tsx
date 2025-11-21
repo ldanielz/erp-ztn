@@ -23,9 +23,11 @@ export default function Navbar(): JSX.Element {
           <Button component={RouterLink} to="/dashboard" variant="text">
             Dashboard
           </Button>
-          <Button component={RouterLink} to="/admin" variant="text" color="inherit">
-            Admin
-          </Button>
+          {auth.user?.role === 'admin' && (
+            <Button component={RouterLink} to="/admin" variant="text" color="inherit">
+              Admin
+            </Button>
+          )}
           <Button component={RouterLink} to="/profile" variant="text">
             Meu Perfil
           </Button>
