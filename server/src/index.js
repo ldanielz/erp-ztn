@@ -40,8 +40,18 @@ const authRoutes = require('./routes/authRoutes')
 app.use('/api/auth', authRoutes)
 
 // admin routes
+// admin routes
 const adminRoutes = require('./routes/adminRoutes')
 app.use('/api/admin', adminRoutes)
+
+// ERP Module Routes
+const clientRoutes = require('./routes/clientRoutes')
+const erbRoutes = require('./routes/erbRoutes')
+const projectRoutes = require('./routes/projectRoutes')
+
+app.use('/api/clients', clientRoutes)
+app.use('/api/erbs', erbRoutes)
+app.use('/api/projects', projectRoutes)
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 

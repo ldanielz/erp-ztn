@@ -28,6 +28,15 @@ export default function Navbar(): JSX.Element {
               Admin
             </Button>
           )}
+          <Button component={RouterLink} to="/clients" variant="text">
+            Clientes
+          </Button>
+          <Button component={RouterLink} to="/erbs" variant="text">
+            ERBs
+          </Button>
+          <Button component={RouterLink} to="/projects" variant="text">
+            Projetos
+          </Button>
           <Button component={RouterLink} to="/profile" variant="text">
             Meu Perfil
           </Button>

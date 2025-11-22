@@ -1,6 +1,7 @@
 const { pool } = require('../config/db')
 const bcrypt = require('bcrypt')
 const { createUser, findUserByEmail } = require('../models/userModel')
+const { logEvent } = require('../utils/logger')
 
 async function stats(req, res) {
   try {
@@ -50,6 +51,8 @@ async function createUserEndpoint(req, res) {
     // Create user (role defaults to 'user' if not specified)
     const user = await createUser({ email, password_hash: hash, name })
 
+    await logEvent('info', `Admin created new user: ${email}`, req.user?.sub)
+
     // Return created user (without password hash)
     return res.status(201).json({
       id: user.id,
@@ -65,4 +68,81 @@ async function createUserEndpoint(req, res) {
   }
 }
 
-module.exports = { stats, recentUsers, createUserEndpoint }
+async function getAllUsers(req, res) {
+  try {
+    const result = await pool.query('SELECT id, email, name, role, created_at FROM users ORDER BY created_at DESC')
+    return res.json(result.rows)
+  } catch (err) {
+    console.error('admin get all users error', err)
+    return res.status(500).json({ message: 'Server error' })
+  }
+}
+
+async function getLogs(req, res) {
+  try {
+    const result = await pool.query(`
+      SELECT l.*, u.email as user_email 
+      FROM system_logs l 
+      LEFT JOIN users u ON l.user_id = u.id 
+      ORDER BY l.created_at DESC 
+      LIMIT 100
+    `)
+    return res.json(result.rows)
+  } catch (err) {
+    console.error('admin get logs error', err)
+    return res.status(500).json({ message: 'Server error' })
+  }
+}
+
+async function getSettings(req, res) {
+  try {
+    const result = await pool.query('SELECT * FROM system_settings')
+    const settings = {}
+    result.rows.forEach(row => {
+      settings[row.key] = row.value
+    })
+    return res.json(settings)
+  } catch (err) {
+    console.error('admin get settings error', err)
+    return res.status(500).json({ message: 'Server error' })
+  }
+}
+
+async function updateSettings(req, res) {
+  const settings = req.body
+  try {
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      for (const [key, value] of Object.entries(settings)) {
+        await client.query(
+          'INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+          [key, value]
+        )
+      }
+      await client.query('COMMIT')
+
+      await logEvent('warning', 'Admin updated system settings', req.user?.sub)
+
+      return res.json({ message: 'Settings updated successfully' })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (err) {
+    console.error('admin update settings error', err)
+    return res.status(500).json({ message: 'Server error' })
+  }
+}
+
+module.exports = {
+  stats,
+  recentUsers,
+  createUserEndpoint,
+  getAllUsers,
+  getLogs,
+  getSettings,
+  updateSettings
+}

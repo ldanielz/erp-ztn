@@ -82,6 +82,12 @@ const ChartCard = ({ title, children }: { title: string; children: React.ReactNo
   </Card>
 )
 
+import AdminUsersDialog from '../components/admin/AdminUsersDialog'
+import AdminLogsDialog from '../components/admin/AdminLogsDialog'
+import AdminSettingsDialog from '../components/admin/AdminSettingsDialog'
+
+// ... existing imports ...
+
 export default function AdminDashboard(): JSX.Element {
   const { user } = useAuth()
 
@@ -90,45 +96,52 @@ export default function AdminDashboard(): JSX.Element {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [chartData, setChartData] = useState<any[]>([])
+
+  // Create User Modal State
   const [openModal, setOpenModal] = useState(false)
   const [modalLoading, setModalLoading] = useState(false)
   const [modalError, setModalError] = useState<string | null>(null)
   const [modalSuccess, setModalSuccess] = useState(false)
   const [formData, setFormData] = useState({ name: '', email: '', password: '' })
 
+  // Quick Actions State
+  const [openUsersDialog, setOpenUsersDialog] = useState(false)
+  const [openLogsDialog, setOpenLogsDialog] = useState(false)
+  const [openSettingsDialog, setOpenSettingsDialog] = useState(false)
+
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const resp = await axios.get('/api/admin/stats')
-        if (!mounted) return
-        const s = resp.data
+      ; (async () => {
+        try {
+          setLoading(true)
+          const resp = await axios.get('/api/admin/stats')
+          if (!mounted) return
+          const s = resp.data
 
-        // Generate demo chart data based on users
-        const demoData = Array.from({ length: 7 }, (_, i) => ({
-          day: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][i],
-          users: Math.floor(Math.random() * 50) + 10,
-          activity: Math.floor(Math.random() * 30) + 5
-        }))
-        setChartData(demoData)
+          // Generate demo chart data based on users
+          const demoData = Array.from({ length: 7 }, (_, i) => ({
+            day: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][i],
+            users: Math.floor(Math.random() * 50) + 10,
+            activity: Math.floor(Math.random() * 30) + 5
+          }))
+          setChartData(demoData)
 
-        setStats([
-          { title: 'Usuários', value: s.usersCount, icon: <PersonIcon /> },
-          { title: 'Atividades (hoje)', value: s.recentActivities?.length || 0, icon: <AssessmentIcon /> },
-          {
-            title: 'Admins',
-            value: s.recentUsers?.filter((u: any) => u.role === 'admin').length || 0,
-            icon: <AdminPanelSettingsIcon />
-          }
-        ])
-        setRecent((s.recentUsers || []).map((u: any) => ({ id: u.id, email: u.email, name: u.name })))
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Erro ao carregar dashboard')
-      } finally {
-        setLoading(false)
-      }
-    })()
+          setStats([
+            { title: 'Usuários', value: s.usersCount, icon: <PersonIcon /> },
+            { title: 'Atividades (hoje)', value: s.recentActivities?.length || 0, icon: <AssessmentIcon /> },
+            {
+              title: 'Admins',
+              value: s.recentUsers?.filter((u: any) => u.role === 'admin').length || 0,
+              icon: <AdminPanelSettingsIcon />
+            }
+          ])
+          setRecent((s.recentUsers || []).map((u: any) => ({ id: u.id, email: u.email, name: u.name })))
+        } catch (err: any) {
+          setError(err?.response?.data?.message || 'Erro ao carregar dashboard')
+        } finally {
+          setLoading(false)
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -252,104 +265,104 @@ export default function AdminDashboard(): JSX.Element {
       {loading && <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />}
 
       {!loading && !error && (
-      <Grid container spacing={2}>
-        {stats.map((s) => (
-          <Grid key={s.title} item xs={12} sm={4}>
-            <StatCard title={s.title} value={s.value} icon={s.icon} />
+        <Grid container spacing={2}>
+          {stats.map((s) => (
+            <Grid key={s.title} item xs={12} sm={4}>
+              <StatCard title={s.title} value={s.value} icon={s.icon} />
+            </Grid>
+          ))}
+
+          <Grid item xs={12} md={8}>
+            <ChartCard title="Crescimento de Usuários (7 dias)">
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={materialYouPalette.neutral.outlineVariant} />
+                  <XAxis dataKey="day" stroke={materialYouPalette.neutral.onSurfaceVariant} />
+                  <YAxis stroke={materialYouPalette.neutral.onSurfaceVariant} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: materialYouPalette.neutral.surface,
+                      border: `1px solid ${materialYouPalette.neutral.outlineVariant}`,
+                      borderRadius: '8px'
+                    } as React.CSSProperties}
+                  />
+                  <Area type="monotone" dataKey="users" stroke={chartColors.primary} fillOpacity={1} fill="url(#colorUsers)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartCard>
           </Grid>
-        ))}
 
-        <Grid item xs={12} md={8}>
-          <ChartCard title="Crescimento de Usuários (7 dias)">
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.8} />
-                    <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={materialYouPalette.neutral.outlineVariant} />
-                <XAxis dataKey="day" stroke={materialYouPalette.neutral.onSurfaceVariant} />
-                <YAxis stroke={materialYouPalette.neutral.onSurfaceVariant} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: materialYouPalette.neutral.surface,
-                    border: `1px solid ${materialYouPalette.neutral.outlineVariant}`,
-                    borderRadius: '8px'
-                  } as React.CSSProperties}
-                />
-                <Area type="monotone" dataKey="users" stroke={chartColors.primary} fillOpacity={1} fill="url(#colorUsers)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </Grid>
+          <Grid item xs={12} md={4}>
+            <ChartCard title="Ações Rápidas">
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Button variant="outlined" onClick={() => setOpenUsersDialog(true)}>Gerenciar Usuários</Button>
+                <Button variant="outlined" onClick={() => setOpenLogsDialog(true)}>Ver Logs</Button>
+                <Button variant="outlined" onClick={() => setOpenSettingsDialog(true)}>Configurações</Button>
+              </Box>
+            </ChartCard>
+          </Grid>
 
-        <Grid item xs={12} md={4}>
-          <ChartCard title="Ações Rápidas">
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Button variant="outlined">Gerenciar Usuários</Button>
-              <Button variant="outlined">Ver Logs</Button>
-              <Button variant="outlined">Configurações</Button>
-            </Box>
-          </ChartCard>
-        </Grid>
+          <Grid item xs={12}>
+            <ChartCard title="Atividade por Tipo (7 dias)">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={materialYouPalette.neutral.outlineVariant} />
+                  <XAxis dataKey="day" stroke={materialYouPalette.neutral.onSurfaceVariant} />
+                  <YAxis stroke={materialYouPalette.neutral.onSurfaceVariant} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: materialYouPalette.neutral.surface,
+                      border: `1px solid ${materialYouPalette.neutral.outlineVariant}`,
+                      borderRadius: '8px'
+                    } as React.CSSProperties}
+                  />
+                  <Legend />
+                  <Bar dataKey="users" fill={chartColors.primary} radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="activity" fill={chartColors.secondary} radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </Grid>
 
-        <Grid item xs={12}>
-          <ChartCard title="Atividade por Tipo (7 dias)">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={materialYouPalette.neutral.outlineVariant} />
-                <XAxis dataKey="day" stroke={materialYouPalette.neutral.onSurfaceVariant} />
-                <YAxis stroke={materialYouPalette.neutral.onSurfaceVariant} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: materialYouPalette.neutral.surface,
-                    border: `1px solid ${materialYouPalette.neutral.outlineVariant}`,
-                    borderRadius: '8px'
-                  } as React.CSSProperties}
-                />
-                <Legend />
-                <Bar dataKey="users" fill={chartColors.primary} radius={[8, 8, 0, 0]} />
-                <Bar dataKey="activity" fill={chartColors.secondary} radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </Grid>
-
-        <Grid item xs={12}>
-          <ChartCard title="Usuários Recentes">
-            <List>
-              {recent.length > 0 ? (
-                recent.map((r) => (
-                  <ListItem
-                    key={r.id}
-                    divider
-                    sx={{
-                      borderColor: materialYouPalette.neutral.outlineVariant,
-                      '&:hover': { bgcolor: materialYouPalette.neutral.background }
-                    }}
-                  >
-                    <Avatar sx={{ mr: 2, bgcolor: chartColors.primary }}>{r.name?.substring(0, 1)}</Avatar>
-                    <ListItemText
-                      primary={r.name || 'Usuário'}
-                      secondary={r.email}
-                      primaryTypographyProps={{ fontWeight: 600, color: materialYouPalette.primary.primary }}
-                    />
-                    <Chip label="Ativo" color="success" variant="outlined" size="small" />
+          <Grid item xs={12}>
+            <ChartCard title="Usuários Recentes">
+              <List>
+                {recent.length > 0 ? (
+                  recent.map((r) => (
+                    <ListItem
+                      key={r.id}
+                      divider
+                      sx={{
+                        borderColor: materialYouPalette.neutral.outlineVariant,
+                        '&:hover': { bgcolor: materialYouPalette.neutral.background }
+                      }}
+                    >
+                      <Avatar sx={{ mr: 2, bgcolor: chartColors.primary }}>{r.name?.substring(0, 1)}</Avatar>
+                      <ListItemText
+                        primary={r.name || 'Usuário'}
+                        secondary={r.email}
+                        primaryTypographyProps={{ fontWeight: 600, color: materialYouPalette.primary.primary }}
+                      />
+                      <Chip label="Ativo" color="success" variant="outlined" size="small" />
+                    </ListItem>
+                  ))
+                ) : (
+                  <ListItem>
+                    <Typography variant="body2" color="textSecondary">
+                      Nenhum usuário ainda
+                    </Typography>
                   </ListItem>
-                ))
-              ) : (
-                <ListItem>
-                  <Typography variant="body2" color="textSecondary">
-                    Nenhum usuário ainda
-                  </Typography>
-                </ListItem>
-              )}
-            </List>
-          </ChartCard>
+                )}
+              </List>
+            </ChartCard>
+          </Grid>
         </Grid>
-      </Grid>
       )}
 
       {/* Create User Modal */}
@@ -424,6 +437,11 @@ export default function AdminDashboard(): JSX.Element {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Quick Action Dialogs */}
+      <AdminUsersDialog open={openUsersDialog} onClose={() => setOpenUsersDialog(false)} />
+      <AdminLogsDialog open={openLogsDialog} onClose={() => setOpenLogsDialog(false)} />
+      <AdminSettingsDialog open={openSettingsDialog} onClose={() => setOpenSettingsDialog(false)} />
     </Box>
   )
 }

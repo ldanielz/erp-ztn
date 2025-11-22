@@ -12,6 +12,9 @@ import Footer from './components/Footer'
 import Navbar from './components/Navbar'
 import PrivateRoute from './components/PrivateRoute'
 import Dashboard from './pages/Dashboard'
+import Clients from './pages/Clients'
+import Erbs from './pages/Erbs'
+import Projects from './pages/Projects'
 
 function Layout(): JSX.Element {
   return (
@@ -38,6 +41,11 @@ export default function App(): JSX.Element {
         <Route path="profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
         <Route path="admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
         <Route path="dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+
+        {/* ERP Modules */}
+        <Route path="clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
+        <Route path="erbs" element={<PrivateRoute><Erbs /></PrivateRoute>} />
+        <Route path="projects" element={<PrivateRoute><Projects /></PrivateRoute>} />
       </Route>
     </Routes>
   )
