@@ -84,13 +84,82 @@ async function initDb() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS erbs (
         id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        lat DECIMAL(10, 8),
-        long DECIMAL(11, 8),
+        site_id VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(255),
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
         address TEXT,
         status VARCHAR(50) DEFAULT 'active',
+        equipment_type VARCHAR(100),
+        technology VARCHAR(100),
+        connection_type VARCHAR(100),
+        classification VARCHAR(100),
+        activation_date DATE,
+        holder VARCHAR(255),
+        structure_type VARCHAR(100),
+        street VARCHAR(255),
+        number VARCHAR(20),
+        neighborhood VARCHAR(100),
+        city VARCHAR(100),
+        state VARCHAR(2),
+        region VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `)
+
+    // Ensure new columns exist for existing databases
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='site_id') THEN
+          ALTER TABLE erbs ADD COLUMN site_id VARCHAR(255) UNIQUE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='latitude') THEN
+          ALTER TABLE erbs ADD COLUMN latitude DECIMAL(10, 8);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='longitude') THEN
+          ALTER TABLE erbs ADD COLUMN longitude DECIMAL(11, 8);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='equipment_type') THEN
+          ALTER TABLE erbs ADD COLUMN equipment_type VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='technology') THEN
+          ALTER TABLE erbs ADD COLUMN technology VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='connection_type') THEN
+          ALTER TABLE erbs ADD COLUMN connection_type VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='classification') THEN
+          ALTER TABLE erbs ADD COLUMN classification VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='activation_date') THEN
+          ALTER TABLE erbs ADD COLUMN activation_date DATE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='holder') THEN
+          ALTER TABLE erbs ADD COLUMN holder VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='structure_type') THEN
+          ALTER TABLE erbs ADD COLUMN structure_type VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='street') THEN
+          ALTER TABLE erbs ADD COLUMN street VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='number') THEN
+          ALTER TABLE erbs ADD COLUMN number VARCHAR(20);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='neighborhood') THEN
+          ALTER TABLE erbs ADD COLUMN neighborhood VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='city') THEN
+          ALTER TABLE erbs ADD COLUMN city VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='state') THEN
+          ALTER TABLE erbs ADD COLUMN state VARCHAR(2);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='region') THEN
+          ALTER TABLE erbs ADD COLUMN region VARCHAR(100);
+        END IF;
+      END$$;
     `)
 
     // Create projects table

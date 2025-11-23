@@ -41,67 +41,113 @@ async function importErbs(req, res) {
 
         let insertedCount = 0;
         let updatedCount = 0;
+        const errors = [];
 
-        for (const row of data) {
-            // Map row keys to db columns
-            const dbRow = {};
-            for (const [excelKey, dbKey] of Object.entries(COLUMN_MAP)) {
-                // Handle case-insensitive matching or exact matching? 
-                // Excel headers might have spaces or different casing.
-                // For now, assume exact match or try to find key.
-                // Let's try to find the key in row that matches excelKey (ignoring case/spaces if needed, but let's stick to simple first)
+        for (let idx = 0; idx < data.length; idx++) {
+            const row = data[idx];
+            try {
+                // Map row keys to db columns
+                const dbRow = {};
+                for (const [excelKey, dbKey] of Object.entries(COLUMN_MAP)) {
+                    // Find key in row that loosely matches excelKey (case-insensitive, spaces handled)
+                    const rowKey = Object.keys(row).find(k => 
+                        k.toUpperCase().replace(/\s+/g, '_') === excelKey.toUpperCase()
+                    );
 
-                // Find key in row that loosely matches excelKey
-                const rowKey = Object.keys(row).find(k => k.toUpperCase().replace(/_/g, ' ').trim() === excelKey.replace(/_/g, ' '));
+                    let value = row[rowKey];
 
-                let value = row[rowKey || excelKey];
+                    // Data transformation
+                    if (dbKey === 'activation_date' && value) {
+                        // Excel dates are numbers or strings
+                        if (typeof value === 'number') {
+                            // Excel date serial number
+                            const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+                            value = date.toISOString().split('T')[0];
+                        } else if (typeof value === 'string') {
+                            // Try to parse string date
+                            const parsed = new Date(value);
+                            if (!isNaN(parsed)) {
+                                value = parsed.toISOString().split('T')[0];
+                            }
+                        }
+                    }
 
-                // Data transformation
-                if (dbKey === 'activation_date' && value) {
-                    // Excel dates are numbers or strings
-                    if (typeof value === 'number') {
-                        // Excel date serial number
-                        const date = new Date(Math.round((value - 25569) * 86400 * 1000));
-                        value = date.toISOString().split('T')[0];
+                    // Only add if value exists
+                    if (value !== undefined && value !== null && value !== '') {
+                        dbRow[dbKey] = value;
                     }
                 }
 
-                dbRow[dbKey] = value;
-            }
-
-            // Ensure site_id is present
-            if (!dbRow.site_id) continue;
-
-            // Check if exists
-            const existing = await client.query('SELECT id FROM erbs WHERE site_id = $1', [dbRow.site_id]);
-
-            if (existing.rows.length > 0) {
-                // Update
-                const updateFields = Object.keys(dbRow).filter(k => k !== 'site_id').map((k, i) => `${k} = $${i + 2}`).join(', ');
-                const values = [dbRow.site_id, ...Object.keys(dbRow).filter(k => k !== 'site_id').map(k => dbRow[k])];
-
-                if (updateFields.length > 0) {
-                    await client.query(`UPDATE erbs SET ${updateFields} WHERE site_id = $1`, values);
-                    updatedCount++;
+                // Ensure site_id is present
+                if (!dbRow.site_id) {
+                    errors.push(`Row ${idx + 1}: Missing SITE_ID`);
+                    continue;
                 }
-            } else {
-                // Insert
-                // We also need to populate 'name' and 'address' for legacy compatibility if they are not null
-                // But we made 'name' nullable. 'address' is still there.
-                // Let's construct 'address' from components if possible.
-                const address = `${dbRow.street || ''}, ${dbRow.number || ''}, ${dbRow.neighborhood || ''}, ${dbRow.city || ''} - ${dbRow.state || ''}`;
 
-                const columns = [...Object.keys(dbRow), 'name', 'address'];
-                const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
-                const values = [...Object.values(dbRow), dbRow.site_id, address]; // Use site_id as name
+                // Check if exists
+                const existing = await client.query('SELECT id FROM erbs WHERE site_id = $1', [dbRow.site_id]);
 
-                await client.query(`INSERT INTO erbs (${columns.join(', ')}) VALUES (${placeholders})`, values);
-                insertedCount++;
+                if (existing.rows.length > 0) {
+                    // Update: only update fields that are provided
+                    const updateFields = Object.keys(dbRow)
+                        .filter(k => k !== 'site_id')
+                        .map((k, i) => `${k} = $${i + 2}`);
+                    
+                    if (updateFields.length > 0) {
+                        const values = [dbRow.site_id, ...Object.keys(dbRow)
+                            .filter(k => k !== 'site_id')
+                            .map(k => dbRow[k])];
+                        
+                        await client.query(
+                            `UPDATE erbs SET ${updateFields.join(', ')} WHERE site_id = $1`, 
+                            values
+                        );
+                        updatedCount++;
+                    }
+                } else {
+                    // Insert
+                    // Construct address from components if not provided
+                    if (!dbRow.address && (dbRow.street || dbRow.city)) {
+                        const parts = [dbRow.street, dbRow.number, dbRow.neighborhood, dbRow.city, dbRow.state]
+                            .filter(p => p)
+                            .join(', ');
+                        dbRow.address = parts || null;
+                    }
+
+                    // Use site_id as name if not provided
+                    if (!dbRow.name) {
+                        dbRow.name = dbRow.site_id;
+                    }
+
+                    const columns = Object.keys(dbRow);
+                    const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+                    const values = columns.map(col => dbRow[col]);
+
+                    await client.query(
+                        `INSERT INTO erbs (${columns.join(', ')}) VALUES (${placeholders})`,
+                        values
+                    );
+                    insertedCount++;
+                }
+            } catch (rowErr) {
+                errors.push(`Row ${idx + 1}: ${rowErr.message}`);
             }
         }
 
         await client.query('COMMIT');
-        res.json({ message: 'Import successful', inserted: insertedCount, updated: updatedCount });
+        
+        const response = { 
+            message: 'Import completed', 
+            inserted: insertedCount, 
+            updated: updatedCount,
+            skipped: errors.length 
+        };
+        
+        if (errors.length > 0) {
+            response.errors = errors.slice(0, 10); // Return first 10 errors
+        }
+        
+        res.json(response);
 
     } catch (err) {
         await client.query('ROLLBACK');
