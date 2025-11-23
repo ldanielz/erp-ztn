@@ -28,18 +28,21 @@ async function create(req, res) {
 
 async function update(req, res) {
     const { id } = req.params
-    const { site_id, latitude, longitude, address, status } = req.body
+    const updateData = req.body
 
     try {
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: 'No fields to update' })
+        }
+
+        // Build dynamic UPDATE query
+        const columns = Object.keys(updateData)
+        const setClauses = columns.map((col, i) => `${col} = $${i + 1}`).join(', ')
+        const values = [...columns.map(col => updateData[col]), id]
+
         const result = await pool.query(
-            `UPDATE erbs SET 
-        site_id = COALESCE($1, site_id), 
-        latitude = COALESCE($2, latitude), 
-        longitude = COALESCE($3, longitude), 
-        address = COALESCE($4, address), 
-        status = COALESCE($5, status) 
-       WHERE id = $6 RETURNING *`,
-            [site_id, latitude, longitude, address, status, id]
+            `UPDATE erbs SET ${setClauses} WHERE id = $${columns.length + 1} RETURNING *`,
+            values
         )
         if (result.rows.length === 0) return res.status(404).json({ message: 'ERB not found' })
         return res.json(result.rows[0])
