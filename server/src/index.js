@@ -6,6 +6,13 @@ const rateLimit = require('express-rate-limit')
 
 dotenv.config()
 
+// Fail fast: ensure a strong JWT secret is provided in environment
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+	console.error('FATAL: JWT_SECRET is missing or too short. Set a strong JWT_SECRET (>=32 chars) in environment.')
+	process.exit(1)
+}
+
 const app = express()
 // Security headers
 app.use(helmet())

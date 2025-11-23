@@ -19,7 +19,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_USER: dbuser
-          POSTGRES_PASSWORD: dbPass2025
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: erp_ztn
         options: >-
           --health-cmd pg_isready
@@ -51,8 +51,8 @@ jobs:
         working-directory: server
         run: npm test --if-present || echo "No tests configured"
         env:
-          DATABASE_URL: postgres://dbuser:dbPass2025@localhost:5432/erp_ztn
-          JWT_SECRET: test-secret-key
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NODE_ENV: test
 
   lint-frontend:
