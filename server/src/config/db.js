@@ -187,8 +187,28 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `)
-    client.release()
-    console.log('Database initialized')
+      // Create ERB audit log table (track changes to ERBs)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS erb_audit_log (
+          id SERIAL PRIMARY KEY,
+          erb_id INTEGER REFERENCES erbs(id) ON DELETE CASCADE,
+          action VARCHAR(50) NOT NULL,
+          changed_fields JSONB,
+          old_values JSONB,
+          new_values JSONB,
+          changed_by_user_id INTEGER REFERENCES users(id),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `)
+
+      // Create index for faster audit lookups
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_erb_audit_log_erb_id 
+        ON erb_audit_log(erb_id)
+      `)
+
+      client.release()
+      console.log('Database initialized')
   } catch (err) {
     console.error('Error initializing database', err)
   }

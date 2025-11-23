@@ -47,7 +47,7 @@ export default function AdminUsersDialog({ open, onClose }: AdminUsersDialogProp
         try {
             setLoading(true)
             setError(null)
-            const response = await axios.get('/api/admin/users')
+            const response = await axios.get('/admin/users')
             setUsers(response.data)
         } catch (err: any) {
             setError(err?.response?.data?.message || 'Erro ao carregar usuários')

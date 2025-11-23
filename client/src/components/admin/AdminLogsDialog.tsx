@@ -47,7 +47,7 @@ export default function AdminLogsDialog({ open, onClose }: AdminLogsDialogProps)
         try {
             setLoading(true)
             setError(null)
-            const response = await axios.get('/api/admin/logs')
+            const response = await axios.get('/admin/logs')
             setLogs(response.data)
         } catch (err: any) {
             setError(err?.response?.data?.message || 'Erro ao carregar logs')

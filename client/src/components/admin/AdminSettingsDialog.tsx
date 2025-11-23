@@ -37,7 +37,7 @@ export default function AdminSettingsDialog({ open, onClose }: AdminSettingsDial
         try {
             setLoading(true)
             setError(null)
-            const response = await axios.get('/api/admin/settings')
+            const response = await axios.get('/admin/settings')
             setSettings(response.data)
         } catch (err: any) {
             setError(err?.response?.data?.message || 'Erro ao carregar configurações')
@@ -51,7 +51,7 @@ export default function AdminSettingsDialog({ open, onClose }: AdminSettingsDial
             setSaving(true)
             setError(null)
             setSuccess(false)
-            await axios.put('/api/admin/settings', settings)
+            await axios.put('/admin/settings', settings)
             setSuccess(true)
             setTimeout(() => setSuccess(false), 3000)
         } catch (err: any) {

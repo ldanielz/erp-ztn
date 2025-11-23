@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { list, create, update, remove } = require('../controllers/erbController')
+const { list, create, update, remove, getDetails } = require('../controllers/erbController')
 const { requireAdmin } = require('../middlewares/adminMiddleware')
 const { requireFields } = require('../middlewares/validationMiddleware')
 
@@ -16,6 +16,7 @@ router.get('/export', exportErbs)
 
 router.get('/', list)
 router.post('/', requireFields(['site_id']), create)
+router.get('/:id', getDetails)
 router.put('/:id', update)
 router.delete('/:id', remove)
 

@@ -114,7 +114,7 @@ export default function AdminDashboard(): JSX.Element {
       ; (async () => {
         try {
           setLoading(true)
-          const resp = await axios.get('/api/admin/stats')
+          const resp = await axios.get('/admin/stats')
           if (!mounted) return
           const s = resp.data
 
@@ -179,7 +179,7 @@ export default function AdminDashboard(): JSX.Element {
 
     try {
       setModalLoading(true)
-      const resp = await axios.post('/api/admin/users', {
+      const resp = await axios.post('/admin/users', {
         name: formData.name,
         email: formData.email,
         password: formData.password
@@ -192,7 +192,7 @@ export default function AdminDashboard(): JSX.Element {
       setTimeout(() => {
         const refreshStats = async () => {
           try {
-            const statsResp = await axios.get('/api/admin/stats')
+            const statsResp = await axios.get('/admin/stats')
             const s = statsResp.data
             setStats([
               { title: 'Usuários', value: s.usersCount, icon: <PersonIcon /> },

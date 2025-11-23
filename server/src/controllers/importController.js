@@ -1,5 +1,6 @@
 const xlsx = require('xlsx');
 const { pool } = require('../config/db');
+const { logErbChange } = require('../utils/auditLogger');
 
 const COLUMN_MAP = {
     'SITE_ID': 'site_id',
@@ -88,6 +89,10 @@ async function importErbs(req, res) {
                 const existing = await client.query('SELECT id FROM erbs WHERE site_id = $1', [dbRow.site_id]);
 
                 if (existing.rows.length > 0) {
+                    const erbId = existing.rows[0].id;
+                    const oldResult = await client.query('SELECT * FROM erbs WHERE id = $1', [erbId]);
+                    const oldValues = oldResult.rows[0];
+
                     // Update: only update fields that are provided
                     const updateFields = Object.keys(dbRow)
                         .filter(k => k !== 'site_id')
@@ -98,10 +103,11 @@ async function importErbs(req, res) {
                             .filter(k => k !== 'site_id')
                             .map(k => dbRow[k])];
                         
-                        await client.query(
+                        const updateResult = await client.query(
                             `UPDATE erbs SET ${updateFields.join(', ')} WHERE site_id = $1`, 
                             values
                         );
+                        await logErbChange(erbId, 'IMPORT', oldValues, {...oldValues, ...dbRow}, req.user?.sub || null);
                         updatedCount++;
                     }
                 } else {
@@ -123,10 +129,11 @@ async function importErbs(req, res) {
                     const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
                     const values = columns.map(col => dbRow[col]);
 
-                    await client.query(
+                    const insertResult = await client.query(
                         `INSERT INTO erbs (${columns.join(', ')}) VALUES (${placeholders})`,
                         values
                     );
+                    await logErbChange(insertResult.rows[0]?.id || null, 'IMPORT', null, dbRow, req.user?.sub || null);
                     insertedCount++;
                 }
             } catch (rowErr) {
