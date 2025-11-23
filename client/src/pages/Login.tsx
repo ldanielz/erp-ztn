@@ -30,7 +30,7 @@ export default function Login(): JSX.Element {
   const onSubmit = async (data: FormData) => {
     setServerError(null)
     try {
-      const resp = await axios.post('/api/auth/login', data)
+      const resp = await axios.post('/auth/login', data)
       const token = resp.data?.token
       // server sets httpOnly cookie; attempt to update client state
       await login(token)

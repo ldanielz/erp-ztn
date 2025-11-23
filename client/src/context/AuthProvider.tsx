@@ -8,13 +8,13 @@ type User = {
   role?: string
 }
 
- type AuthContextType = {
-   user: User | null
-   isAuthenticated: boolean
-   login: (token?: string) => Promise<void>
-   logout: () => void
-   refreshUserFromServer?: () => Promise<void>
- }
+type AuthContextType = {
+  user: User | null
+  isAuthenticated: boolean
+  login: (token?: string) => Promise<void>
+  logout: () => void
+  refreshUserFromServer?: () => Promise<void>
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -39,67 +39,67 @@ export const useAuth = (): AuthContextType => {
   return ctx
 }
 
- export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-   const [user, setUser] = useState<User | null>(null)
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null)
 
-   useEffect(() => {
-     // Try to fetch current user from cookie (httpOnly) via /api/auth/me
-     ;(async () => {
-       try {
-         const resp = await axios.get('/api/auth/me')
-         if (resp?.data) {
-           setUser(resp.data)
-         }
-       } catch (e) {
-         // not authenticated
-       }
-     })()
-   }, [])
+  useEffect(() => {
+    // Try to fetch current user from cookie (httpOnly) via /auth/me
+    ; (async () => {
+      try {
+        const resp = await axios.get('/auth/me')
+        if (resp?.data) {
+          setUser(resp.data)
+        }
+      } catch (e) {
+        // not authenticated
+      }
+    })()
+  }, [])
 
-   const login = async (token?: string) => {
-     // Server sets httpOnly cookie; optionally decode token for immediate UX
-     if (token) {
-       const u = decodeJwt(token)
-       if (u) setUser(u)
-     }
-     // ensure we fetch authoritative user from server
-     try {
-       const resp = await axios.get('/api/auth/me')
-       if (resp?.data) setUser(resp.data)
-     } catch (e) {
-       // ignore
-     }
-   }
+  const login = async (token?: string) => {
+    // Server sets httpOnly cookie; optionally decode token for immediate UX
+    if (token) {
+      const u = decodeJwt(token)
+      if (u) setUser(u)
+    }
+    // ensure we fetch authoritative user from server
+    try {
+      const resp = await axios.get('/auth/me')
+      if (resp?.data) setUser(resp.data)
+    } catch (e) {
+      // ignore
+    }
+  }
 
-   // update user from cookie-backed /me endpoint
-   const refreshUserFromServer = async () => {
-     try {
-       const resp = await axios.get('/api/auth/me')
-       if (resp?.data) setUser(resp.data)
-       else setUser(null)
-     } catch (e) {
-       setUser(null)
-     }
-   }
+  // update user from cookie-backed /me endpoint
+  const refreshUserFromServer = async () => {
+    try {
+      const resp = await axios.get('/auth/me')
+      if (resp?.data) setUser(resp.data)
+      else setUser(null)
+    } catch (e) {
+      setUser(null)
+    }
+  }
 
-   const logout = () => {
-     setUser(null)
-     ;(async () => {
-       try {
-         await axios.post('/api/auth/logout')
-       } catch (e) {
-         // ignore
-       }
-     })()
-   }
+  const logout = () => {
+    setUser(null)
+      ; (async () => {
+        try {
+          await axios.post('/auth/logout')
+        } catch (e) {
+          // ignore
+        }
+      })()
+  }
 
-   const value: AuthContextType = {
-     user,
-     isAuthenticated: !!user,
-     login,
-     logout,
-     refreshUserFromServer
-   }
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    refreshUserFromServer
+  }
 
-   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
- }
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}

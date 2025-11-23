@@ -3,8 +3,15 @@ const router = express.Router()
 const { list, create, update, remove } = require('../controllers/erbController')
 const { requireAdmin } = require('../middlewares/adminMiddleware')
 
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+const { importErbs, exportErbs } = require('../controllers/importController');
+
 // Protect all routes with admin middleware for now
 router.use(requireAdmin)
+
+router.post('/import', upload.single('file'), importErbs)
+router.get('/export', exportErbs)
 
 router.get('/', list)
 router.post('/', create)

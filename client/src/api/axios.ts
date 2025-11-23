@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const instance = axios.create({
   // Default to backend dev server if VITE_API_BASE_URL not provided
-  baseURL: (import.meta.env as any).VITE_API_BASE_URL || 'http://localhost:4000',
+  baseURL: (import.meta.env as any).VITE_API_BASE_URL || 'http://localhost:4000/api',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true
 })

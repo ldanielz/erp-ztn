@@ -11,13 +11,13 @@ async function list(req, res) {
 }
 
 async function create(req, res) {
-    const { name, lat, long, address } = req.body
-    if (!name) return res.status(400).json({ message: 'Name is required' })
+    const { site_id, latitude, longitude, address, status } = req.body
+    if (!site_id) return res.status(400).json({ message: 'Site ID is required' })
 
     try {
         const result = await pool.query(
-            'INSERT INTO erbs (name, lat, long, address) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, lat, long, address]
+            'INSERT INTO erbs (site_id, latitude, longitude, address, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [site_id, latitude, longitude, address, status || 'active']
         )
         return res.status(201).json(result.rows[0])
     } catch (err) {
@@ -28,18 +28,18 @@ async function create(req, res) {
 
 async function update(req, res) {
     const { id } = req.params
-    const { name, lat, long, address, status } = req.body
+    const { site_id, latitude, longitude, address, status } = req.body
 
     try {
         const result = await pool.query(
             `UPDATE erbs SET 
-        name = COALESCE($1, name), 
-        lat = COALESCE($2, lat), 
-        long = COALESCE($3, long), 
+        site_id = COALESCE($1, site_id), 
+        latitude = COALESCE($2, latitude), 
+        longitude = COALESCE($3, longitude), 
         address = COALESCE($4, address), 
         status = COALESCE($5, status) 
        WHERE id = $6 RETURNING *`,
-            [name, lat, long, address, status, id]
+            [site_id, latitude, longitude, address, status, id]
         )
         if (result.rows.length === 0) return res.status(404).json({ message: 'ERB not found' })
         return res.json(result.rows[0])
