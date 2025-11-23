@@ -19,6 +19,9 @@ async function list(req, res) {
 async function create(req, res) {
     const { name, client_id, start_date, end_date } = req.body
     if (!name) return res.status(400).json({ message: 'Name is required' })
+    if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ message: 'Name must be a non-empty string' })
+    }
 
     try {
         const result = await pool.query(
@@ -34,18 +37,21 @@ async function create(req, res) {
 
 async function update(req, res) {
     const { id } = req.params
-    const { name, client_id, status, start_date, end_date } = req.body
+    const updateData = req.body
 
     try {
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: 'No fields to update' })
+        }
+
+        // Build dynamic UPDATE query
+        const columns = Object.keys(updateData)
+        const setClauses = columns.map((col, i) => `${col} = $${i + 1}`).join(', ')
+        const values = [...columns.map(col => updateData[col]), id]
+
         const result = await pool.query(
-            `UPDATE projects SET 
-        name = COALESCE($1, name), 
-        client_id = COALESCE($2, client_id), 
-        status = COALESCE($3, status), 
-        start_date = COALESCE($4, start_date), 
-        end_date = COALESCE($5, end_date) 
-       WHERE id = $6 RETURNING *`,
-            [name, client_id, status, start_date, end_date, id]
+            `UPDATE projects SET ${setClauses} WHERE id = $${columns.length + 1} RETURNING *`,
+            values
         )
         if (result.rows.length === 0) return res.status(404).json({ message: 'Project not found' })
         return res.json(result.rows[0])
