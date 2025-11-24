@@ -16,9 +16,11 @@ import {
     Alert,
     Snackbar
 } from '@mui/material'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, UploadFile as UploadIcon, Download as DownloadIcon } from '@mui/icons-material'
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, UploadFile as UploadIcon, Download as DownloadIcon, Info as InfoIcon } from '@mui/icons-material'
 import api from '../api/axios'
 import ErbDialog from '../components/ErbDialog'
+import ErbDetailsDialog from '../components/ErbDetailsDialog'
+import { Pagination } from '@mui/material'
 
 interface Erb {
     id: number
@@ -35,13 +37,21 @@ export default function Erbs(): JSX.Element {
     const [erbs, setErbs] = useState<Erb[]>([])
     const [openDialog, setOpenDialog] = useState(false)
     const [selectedErb, setSelectedErb] = useState<Erb | null>(null)
+    const [detailsOpen, setDetailsOpen] = useState(false)
+    const [detailsErbId, setDetailsErbId] = useState<number | null>(null)
+    const [page, setPage] = useState<number>(1)
+    const [limit, setLimit] = useState<number>(10)
+    const [total, setTotal] = useState<number>(0)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [notification, setNotification] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' })
 
-    const fetchErbs = async () => {
+    const fetchErbs = async (p = page, l = limit) => {
         try {
-            const res = await api.get('/erbs')
-            setErbs(res.data)
+            const res = await api.get(`/erbs?page=${p}&limit=${l}`)
+            setErbs(res.data.data)
+            setTotal(res.data.total)
+            setPage(res.data.page)
+            setLimit(res.data.limit)
         } catch (err) {
             console.error('Failed to fetch erbs', err)
         }
@@ -50,6 +60,10 @@ export default function Erbs(): JSX.Element {
     useEffect(() => {
         fetchErbs()
     }, [])
+
+    useEffect(() => {
+        fetchErbs(page, limit)
+    }, [page, limit])
 
     const handleSave = async (erbData: Partial<Erb>) => {
         try {
@@ -204,6 +218,12 @@ export default function Erbs(): JSX.Element {
                                     </TableCell>
                                     <TableCell align="right">
                                         <IconButton
+                                            color="info"
+                                            onClick={() => { setDetailsErbId(erb.id); setDetailsOpen(true); }}
+                                        >
+                                            <InfoIcon />
+                                        </IconButton>
+                                        <IconButton
                                             color="inherit"
                                             onClick={() => { setSelectedErb(erb); setOpenDialog(true); }}
                                         >
@@ -230,11 +250,26 @@ export default function Erbs(): JSX.Element {
                 </TableContainer>
             </Paper>
 
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+                <Pagination
+                    count={Math.max(1, Math.ceil(total / limit))}
+                    page={page}
+                    onChange={(_, value) => setPage(value)}
+                    color="primary"
+                />
+            </Box>
+
             <ErbDialog
                 open={openDialog}
                 onClose={() => setOpenDialog(false)}
                 onSave={handleSave}
                 erb={selectedErb}
+            />
+
+            <ErbDetailsDialog
+                open={detailsOpen}
+                onClose={() => { setDetailsOpen(false); setDetailsErbId(null); }}
+                erbId={detailsErbId}
             />
 
             <Snackbar

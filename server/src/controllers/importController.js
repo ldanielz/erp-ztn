@@ -4,13 +4,19 @@ const { logErbChange } = require('../utils/auditLogger');
 
 const COLUMN_MAP = {
     'SITE_ID': 'site_id',
+    'STATION_ID': 'site_id',
     'TIPO_DE_EQUIPAMENTO': 'equipment_type',
+    'TIPO_DE_ELEMENTO': 'equipment_type',
+    'TIPO_DA_TORRE': 'equipment_type',
     'TECNOLOGIA': 'technology',
     'TIPO_DE_CONEXAO': 'connection_type',
     'CLASSIFICACAO': 'classification',
     'DATA_DE_ATIVACAO': 'activation_date',
     'DETENTOR': 'holder',
+    'DETENTOR_AREA': 'holder',
+    'DETENTOR_INFRA': 'holder',
     'TIPO_DE_ESTRUTURA': 'structure_type',
+    'TIPO_DE_INFRA': 'structure_type',
     'LOGRADOURO': 'street',
     'NUMERO': 'number',
     'BAIRRO': 'neighborhood',
@@ -19,7 +25,9 @@ const COLUMN_MAP = {
     'REGIONAL': 'region',
     'LATITUDE': 'latitude',
     'LONGITUDE': 'longitude',
-    'STATUS': 'status'
+    'STATUS': 'status',
+    'END_CONSOLIDADO': 'address',
+    'ENDERECO_ID': 'address'
 };
 
 async function importErbs(req, res) {
@@ -47,6 +55,9 @@ async function importErbs(req, res) {
         for (let idx = 0; idx < data.length; idx++) {
             const row = data[idx];
             try {
+                // Store raw Excel row for audit trail
+                const rawRow = row;
+
                 // Map row keys to db columns
                 const dbRow = {};
                 for (const [excelKey, dbKey] of Object.entries(COLUMN_MAP)) {
@@ -79,6 +90,9 @@ async function importErbs(req, res) {
                     }
                 }
 
+                // Add raw_import for audit trail
+                dbRow.raw_import = rawRow
+
                 // Ensure site_id is present
                 if (!dbRow.site_id) {
                     errors.push(`Row ${idx + 1}: Missing SITE_ID`);
@@ -102,12 +116,13 @@ async function importErbs(req, res) {
                         const values = [dbRow.site_id, ...Object.keys(dbRow)
                             .filter(k => k !== 'site_id')
                             .map(k => dbRow[k])];
-                        
+
                         const updateResult = await client.query(
-                            `UPDATE erbs SET ${updateFields.join(', ')} WHERE site_id = $1`, 
+                            `UPDATE erbs SET ${updateFields.join(', ')} WHERE site_id = $1 RETURNING *`, 
                             values
                         );
-                        await logErbChange(erbId, 'IMPORT', oldValues, {...oldValues, ...dbRow}, req.user?.sub || null);
+                        const updatedRow = updateResult.rows[0] || { ...oldValues, ...dbRow }
+                        await logErbChange(erbId, 'IMPORT', oldValues, updatedRow, req.user?.sub || null);
                         updatedCount++;
                     }
                 } else {
@@ -130,10 +145,11 @@ async function importErbs(req, res) {
                     const values = columns.map(col => dbRow[col]);
 
                     const insertResult = await client.query(
-                        `INSERT INTO erbs (${columns.join(', ')}) VALUES (${placeholders})`,
+                        `INSERT INTO erbs (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`,
                         values
                     );
-                    await logErbChange(insertResult.rows[0]?.id || null, 'IMPORT', null, dbRow, req.user?.sub || null);
+                    const insertedRow = insertResult.rows[0]
+                    await logErbChange(insertedRow?.id || null, 'IMPORT', null, insertedRow || dbRow, req.user?.sub || null);
                     insertedCount++;
                 }
             } catch (rowErr) {

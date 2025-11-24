@@ -3,8 +3,16 @@ const { logErbChange, getErbAuditLog } = require('../utils/auditLogger')
 
 async function list(req, res) {
     try {
-        const result = await pool.query('SELECT * FROM erbs ORDER BY created_at DESC')
-        return res.json(result.rows)
+        // Pagination support
+        const page = Math.max(parseInt(req.query.page) || 1, 1)
+        const limit = Math.max(parseInt(req.query.limit) || 25, 1)
+        const offset = (page - 1) * limit
+
+        const dataResult = await pool.query('SELECT * FROM erbs ORDER BY created_at DESC LIMIT $1 OFFSET $2', [limit, offset])
+        const countResult = await pool.query('SELECT COUNT(*)::int as total FROM erbs')
+        const total = countResult.rows[0].total
+
+        return res.json({ data: dataResult.rows, total, page, limit })
     } catch (err) {
         console.error('list erbs error', err)
         return res.status(500).json({ message: 'Server error' })

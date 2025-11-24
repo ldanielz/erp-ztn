@@ -103,6 +103,7 @@ async function initDb() {
         city VARCHAR(100),
         state VARCHAR(2),
         region VARCHAR(100),
+        raw_import JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `)
@@ -158,6 +159,9 @@ async function initDb() {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='region') THEN
           ALTER TABLE erbs ADD COLUMN region VARCHAR(100);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='erbs' AND column_name='raw_import') THEN
+          ALTER TABLE erbs ADD COLUMN raw_import JSONB;
         END IF;
       END$$;
     `)
