@@ -1,7 +1,8 @@
-import { createTheme, alpha } from '@mui/material/styles'
+import { createTheme, alpha, ThemeOptions } from '@mui/material/styles'
 
-// Minimals-inspired palette
-const palette = {
+// Light palette (default)
+export const lightPalette = {
+    mode: 'light' as const,
     primary: {
         main: '#00AB55',
         light: '#36D375',
@@ -56,7 +57,7 @@ const palette = {
         disabled: '#919EAB'
     },
     background: {
-        default: '#F9FAFB', // Neutral background
+        default: '#F9FAFB',
         paper: '#FFFFFF'
     },
     action: {
@@ -71,8 +72,83 @@ const palette = {
     }
 }
 
+// Dark palette
+export const darkPalette = {
+    mode: 'dark' as const,
+    primary: {
+        main: '#00AB55',
+        light: '#36D375',
+        dark: '#007B55',
+        contrastText: '#fff'
+    },
+    secondary: {
+        main: '#3366FF',
+        light: '#84A9FF',
+        dark: '#1939B7',
+        contrastText: '#fff'
+    },
+    info: {
+        main: '#74CAFF',
+        light: '#84A9FF',
+        dark: '#0C53B7',
+        contrastText: '#161C24'
+    },
+    success: {
+        main: '#54D62C',
+        light: '#AAF27F',
+        dark: '#229A16',
+        contrastText: '#161C24'
+    },
+    warning: {
+        main: '#FFC107',
+        light: '#FFE16A',
+        dark: '#B78103',
+        contrastText: '#161C24'
+    },
+    error: {
+        main: '#FF4842',
+        light: '#FFA48D',
+        dark: '#B72136',
+        contrastText: '#fff'
+    },
+    grey: {
+        0: '#FFFFFF',
+        100: '#F9FAFB',
+        200: '#F4F6F8',
+        300: '#DFE3E8',
+        400: '#C4CDD5',
+        500: '#919EAB',
+        600: '#637381',
+        700: '#454F5B',
+        800: '#212B36',
+        900: '#161C24'
+    },
+    text: {
+        primary: '#E7E7E7',
+        secondary: '#A0A0A0',
+        disabled: '#676767'
+    },
+    background: {
+        default: '#121212',
+        paper: '#1E1E1E'
+    },
+    action: {
+        active: '#A0A0A0',
+        hover: alpha('#FFFFFF', 0.08),
+        selected: alpha('#FFFFFF', 0.16),
+        disabled: alpha('#FFFFFF', 0.3),
+        disabledBackground: alpha('#FFFFFF', 0.12),
+        focus: alpha('#FFFFFF', 0.24),
+        hoverOpacity: 0.08,
+        disabledOpacity: 0.38
+    }
+}
+
+// Shared palette object (light is default)
+const palette = lightPalette
+
 // Typography
-const typography = {
+export const typography = {
     fontFamily: "'Public Sans', 'Inter', sans-serif",
     h1: { fontWeight: 700, fontSize: '4rem' },
     h2: { fontWeight: 700, fontSize: '3rem' },
@@ -88,7 +164,7 @@ const typography = {
 }
 
 // Shadows
-const shadows = [
+export const shadows = [
     'none',
     '0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)',
     '0px 3px 1px -2px rgba(0,0,0,0.2),0px 2px 2px 0px rgba(0,0,0,0.14),0px 1px 5px 0px rgba(0,0,0,0.12)',
@@ -97,7 +173,7 @@ const shadows = [
     '0px 3px 5px -1px rgba(0,0,0,0.2),0px 5px 8px 0px rgba(0,0,0,0.14),0px 1px 14px 0px rgba(0,0,0,0.12)',
     '0px 3px 5px -1px rgba(0,0,0,0.2),0px 6px 10px 0px rgba(0,0,0,0.14),0px 1px 18px 0px rgba(0,0,0,0.12)',
     '0px 4px 5px -2px rgba(0,0,0,0.2),0px 7px 10px 1px rgba(0,0,0,0.14),0px 2px 16px 1px rgba(0,0,0,0.12)',
-    '0 8px 16px 0 rgba(145, 158, 171, 0.16)', // Custom soft shadow
+    '0 8px 16px 0 rgba(145, 158, 171, 0.16)',
     '0px 5px 6px -3px rgba(0,0,0,0.2),0px 9px 12px 1px rgba(0,0,0,0.14),0px 3px 16px 2px rgba(0,0,0,0.12)',
     '0px 6px 6px -3px rgba(0,0,0,0.2),0px 10px 14px 1px rgba(0,0,0,0.14),0px 4px 18px 3px rgba(0,0,0,0.12)',
     '0px 6px 7px -4px rgba(0,0,0,0.2),0px 11px 15px 1px rgba(0,0,0,0.14),0px 4px 20px 3px rgba(0,0,0,0.12)',
@@ -116,82 +192,73 @@ const shadows = [
     '0px 11px 15px -7px rgba(0,0,0,0.2),0px 24px 38px 3px rgba(0,0,0,0.14),0px 9px 46px 8px rgba(0,0,0,0.12)'
 ]
 
-const theme = createTheme({
-    palette,
-    typography,
-    shadows: shadows as any,
-    shape: {
-        borderRadius: 8
+// Component overrides factory
+export const componentOverrides = (palette: any) => ({
+    MuiButton: {
+        styleOverrides: {
+            root: {
+                boxShadow: 'none',
+                '&:hover': {
+                    boxShadow: 'none'
+                }
+            },
+            containedInherit: {
+                color: palette.grey[800],
+                backgroundColor: palette.grey[300],
+                '&:hover': {
+                    backgroundColor: palette.grey[400]
+                }
+            },
+            containedPrimary: {
+                boxShadow: '0 8px 16px 0 rgba(0, 171, 85, 0.24)'
+            }
+        }
     },
-    components: {
-        MuiButton: {
-            styleOverrides: {
-                root: {
-                    boxShadow: 'none',
-                    '&:hover': {
-                        boxShadow: 'none'
-                    }
-                },
-                containedInherit: {
-                    color: palette.grey[800],
-                    backgroundColor: palette.grey[300],
-                    '&:hover': {
-                        backgroundColor: palette.grey[400]
-                    }
-                },
-                containedPrimary: {
-                    boxShadow: '0 8px 16px 0 rgba(0, 171, 85, 0.24)'
-                }
+    MuiCard: {
+        styleOverrides: {
+            root: {
+                boxShadow: '0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12)',
+                borderRadius: 16,
+                position: 'relative',
+                zIndex: 0
             }
-        },
-        MuiCard: {
-            styleOverrides: {
-                root: {
-                    boxShadow: '0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12)',
-                    borderRadius: 16,
-                    position: 'relative',
-                    zIndex: 0 // Fix stacking context
-                }
+        }
+    },
+    MuiCardContent: {
+        styleOverrides: {
+            root: {
+                padding: 24
             }
-        },
-        MuiCardContent: {
-            styleOverrides: {
-                root: {
-                    padding: 24
-                }
+        }
+    },
+    MuiCardHeader: {
+        styleOverrides: {
+            root: {
+                padding: '24px 24px 0'
             }
-        },
-        MuiCardHeader: {
-            styleOverrides: {
-                root: {
-                    padding: '24px 24px 0'
-                }
+        }
+    },
+    MuiPaper: {
+        defaultProps: {
+            elevation: 0
+        }
+    },
+    MuiTableCell: {
+        styleOverrides: {
+            head: {
+                color: palette.text.secondary,
+                backgroundColor: palette.background.default
             }
-        },
-        MuiPaper: {
-            defaultProps: {
-                elevation: 0
-            }
-        },
-        MuiTableCell: {
-            styleOverrides: {
-                head: {
-                    color: palette.text.secondary,
-                    backgroundColor: palette.background.default
-                }
-            }
-        },
-        MuiTooltip: {
-            styleOverrides: {
-                tooltip: {
-                    backgroundColor: palette.grey[800]
-                },
-                arrow: {
-                    color: palette.grey[800]
-                }
+        }
+    },
+    MuiTooltip: {
+        styleOverrides: {
+            tooltip: {
+                backgroundColor: palette.grey[800]
+            },
+            arrow: {
+                color: palette.grey[800]
             }
         }
     }
 })
-
-export default theme
